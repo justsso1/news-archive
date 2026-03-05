@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📰 每日新闻归档</title>
+  <style>
+    :root {
+      --bg: #fafaf9;
+      --card-bg: #ffffff;
+      --text: #1c1917;
+      --text-secondary: #78716c;
+      --accent: #f59e0b;
+      --border: #e7e5e4;
+      --tag-bg: #fef3c7;
+      --tag-text: #92400e;
+      --sidebar-bg: #ffffff;
+      --sidebar-hover: #fef3c7;
+      --sidebar-active: #f59e0b;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1917;
+        --card-bg: #292524;
+        --text: #fafaf9;
+        --text-secondary: #a8a29e;
+        --accent: #fbbf24;
+        --border: #44403c;
+        --tag-bg: #451a03;
+        --tag-text: #fde68a;
+        --sidebar-bg: #292524;
+        --sidebar-hover: #44403c;
+        --sidebar-active: #fbbf24;
+      }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    /* Layout */
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 200px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 1.5rem 0;
+      z-index: 10;
+    }
+    .sidebar-title {
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 0 1rem 1rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0.5rem;
+    }
+    .sidebar-title .emoji { margin-right: 0.3rem; }
+    .sidebar-month {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      padding: 0.6rem 1rem 0.3rem;
+      text-transform: uppercase;
+    }
+    .sidebar a {
+      display: block;
+      padding: 0.4rem 1rem 0.4rem 1.5rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.88rem;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+    }
+    .sidebar a:hover {
+      background: var(--sidebar-hover);
+      border-left-color: var(--accent);
+    }
+    .sidebar a .weekday-hint {
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      margin-left: 0.3rem;
+    }
+
+    /* Main content */
+    .main-content {
+      margin-left: 200px;
+      flex: 1;
+      padding: 2rem 2rem 2rem 2.5rem;
+    }
+    .content-inner {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    header {
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 2px solid var(--accent);
+    }
+    header h1 { font-size: 1.8rem; font-weight: 700; }
+    header p { color: var(--text-secondary); margin-top: 0.3rem; font-size: 0.95rem; }
+    .day-section {
+      margin-bottom: 3rem;
+      scroll-margin-top: 1rem;
+    }
+    .day-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .day-header h2 { font-size: 1.25rem; font-weight: 600; }
+    .day-header .weekday { font-size: 0.85rem; color: var(--text-secondary); }
+    .category { margin-bottom: 1.2rem; }
+    .category-tag {
+      display: inline-block;
+      background: var(--tag-bg);
+      color: var(--tag-text);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.15rem 0.6rem;
+      border-radius: 999px;
+      margin-bottom: 0.4rem;
+    }
+    .news-list { list-style: none; padding-left: 0; }
+    .news-list li {
+      position: relative;
+      padding: 0.35rem 0 0.35rem 1.2rem;
+      font-size: 0.92rem;
+    }
+    .news-list li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+      font-weight: bold;
+    }
+    .source { color: var(--text-secondary); font-size: 0.8rem; }
+
+    /* Section divider between news and creative blocks */
+    .section-divider {
+      margin: 2rem 0 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 2px dashed var(--border);
+    }
+    .section-divider-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      letter-spacing: 0.05em;
+    }
+    footer {
+      text-align: center;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 0.82rem;
+    }
+
+    /* Mobile toggle button */
+    .sidebar-toggle {
+      display: none;
+      position: fixed;
+      bottom: 1.2rem;
+      right: 1.2rem;
+      z-index: 100;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #1c1917;
+      border: none;
+      font-size: 1.3rem;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      transition: transform 0.2s;
+    }
+    .sidebar-toggle:active { transform: scale(0.9); }
+
+    /* Overlay for mobile sidebar */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 19;
+    }
+
+    /* Tablet: narrower sidebar */
+    @media (max-width: 1024px) {
+      .sidebar { width: 170px; }
+      .main-content { margin-left: 170px; padding: 1.5rem 1.5rem 1.5rem 2rem; }
+    }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .layout { flex-direction: column; }
+
+      .sidebar {
+        width: 260px;
+        position: fixed;
+        top: 0;
+        left: -270px;
+        height: 100vh;
+        border-right: 1px solid var(--border);
+        border-bottom: none;
+        transition: left 0.25s ease;
+        z-index: 20;
+        display: block;
+        padding: 1.5rem 0;
+      }
+      .sidebar.open { left: 0; }
+      .sidebar-overlay.open { display: block; }
+      .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+
+      .sidebar-title {
+        width: auto;
+        padding: 0 1rem 1rem;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 0.5rem;
+      }
+      .sidebar-month { display: block; }
+      .sidebar a {
+        padding: 0.45rem 1rem 0.45rem 1.5rem;
+        border: none;
+        border-radius: 0;
+        border-left: 3px solid transparent;
+        font-size: 0.88rem;
+      }
+      .sidebar a:hover { border-left-color: var(--accent); }
+      .sidebar a .weekday-hint { display: inline; }
+
+      .main-content {
+        margin-left: 0;
+        padding: 1.2rem 1rem;
+      }
+      .content-inner { max-width: 100%; }
+
+      header h1 { font-size: 1.4rem; }
+      .day-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; }
+      .day-header h2 { font-size: 1.1rem; }
+      .day-header .weekday { font-size: 0.8rem; }
+      .news-list li { font-size: 0.88rem; padding-left: 1rem; }
+      .category-tag { font-size: 0.74rem; }
+      .source { font-size: 0.75rem; }
+    }
+
+    /* Small phones */
+    @media (max-width: 400px) {
+      .main-content { padding: 1rem 0.7rem; }
+      header h1 { font-size: 1.2rem; }
+      .news-list li { font-size: 0.84rem; }
+    }
+  </style>
+</head>
+<body>
+  <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="菜单">📋</button>
+  <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="sidebar-title"><span class="emoji">📰</span>新闻归档</div>
+      <!-- SIDEBAR_INSERT_POINT -->
+      <div class="sidebar-month">2026年3月</div>
+      <a href="#day-2026-03-05">3月5日 <span class="weekday-hint">周四</span></a>
+      <a href="#day-2026-03-04">3月4日 <span class="weekday-hint">周三</span></a>
+    </nav>
+
+    <div class="main-content">
+      <div class="content-inner">
+      <header>
+        <h1>📰 每日新闻归档</h1>
+        <p>小可的新闻早报 · 自动更新</p>
+      </header>
+
+      <main id="archive">
+        <!-- ARCHIVE_INSERT_POINT -->
+
+        <div class="day-section" id="day-2026-03-05">
+          <div class="day-header">
+            <h2>📅 2026年3月5日</h2>
+            <span class="weekday">星期四 · 惊蛰 · 农历丙午年正月十七</span>
+          </div>
+
+          <div class="category">
+            <span class="category-tag">🏛 两会·政策</span>
+            <ul class="news-list">
+              <li>全国两会召开，政府工作报告发布：GDP目标下调、军费增幅下降 <span class="source">— 中国网 / BBC</span></li>
+              <li>报告提出落实职工带薪错峰休假制度，支持有条件地方推广中小学春秋假 <span class="source">— 羊城晚报</span></li>
+              <li>安排1.25万亿元补助资金，确保养老金按时足额发放 <span class="source">— 同花顺财经</span></li>
+              <li>政府工作报告极简版发布，聚焦民生与绿色发展 <span class="source">— 中华网</span></li>
+            </ul>
+          </div>
+
+          <div class="category">
+            <span class="category-tag">🌍 国际</span>
+            <ul class="news-list">
+              <li>美国对伊朗军事打击升级：已打击近2000个目标，击沉17艘军舰 <span class="source">— 华尔街日报 / 新华网</span></li>
+              <li>多方质疑美国袭击合法性，称践踏国际法、开创危险先例 <span class="source">— 中国新闻网</span></li>
+              <li>在伊中国公民撤离中，25人经土库曼斯坦启程回国 <span class="source">— 中国日报网</span></li>
+              <li>日本首相拒绝回答美以攻击伊朗是否违反国际法 <span class="source">— RFI</span></li>
+              <li>厄瓜多尔驱逐古巴大使，限48小时内离境 <span class="source">— 京报网</span></li>
+              <li>美国法院要求海关部门"退还"非法关税 <span class="source">— 21财经</span></li>
+            </ul>
+          </div>
+
+          <div class="category">
+            <span class="category-tag">🤝 中德合作</span>
+            <ul class="news-list">
+              <li>德国总理携汽车巨头访华，深化中德经贸合作 <span class="source">— 中华网</span></li>
+              <li>中德汽车合作进入蜜月期，合作前景广阔 <span class="source">— 新浪财经</span></li>
+            </ul>
+          </div>
+
+          <div class="category">
+            <span class="category-tag">💰 财经</span>
+            <ul class="news-list">
+              <li>原油连续大涨，国内商品期货迎涨停潮，交易所齐发风险提示 <span class="source">— 东方财富 / 中国经济网</span></li>
+              <li>人民币对美元中间价报6.9007，调升117个基点，避险属性凸显 <span class="source">— 中国经济网</span></li>
+              <li>ETF两市成交额超2500亿元 <span class="source">— 同花顺财经</span></li>
+            </ul>
+          </div>
+
+          <div class="category">
+            <span class="category-tag">🔬 科技·产业</span>
+            <ul class="news-list">
+              <li>浙江义乌AI玩具出口火爆"出圈"，客单价涨七成 <span class="source">— 中华网</span></li>
+              <li>教育机器人赛道升级：从单一玩具到"玩学考竞"生态闭环 <span class="source">— 搜狐</span></li>
+            </ul>
+          </div>
+
+          <div class="category">
+            <span class="category-tag">🎬 文娱</span>
+            <ul class="news-list">
+              <li>《飞驰人生3》超越《阿凡达3》，登顶2026年全球票房榜 <span class="source">— 界面新闻</span></li>
+              <li>《暗恋桃花源》首演40周年，金士杰丁乃竺再聚首 <span class="source">— 新华网</span></li>
+              <li>香港艺人陈浩民：在战火边缘，等到那班回家的飞机 <span class="source">— 羊城晚报</span></li>
+            </ul>
+          </div>
+
+          <div class="category">
+            <span class="category-tag">⚽ 体育</span>
+            <ul class="news-list">
+              <li>米兰冬残奥会开赛，中国队轮椅冰壶混双赛场"开门红" <span class="source">— 中国网</span></li>
+              <li>全英羽毛球公开赛，王祉怡2-0横扫日本00后选手 <span class="source">— 中华网</span></li>
+              <li>青岛西海岸队出征新赛季中超 <span class="source">— 中国新闻网</span></li>
+            </ul>
+          </div>
+
+          <div class="category">
+            <span class="category-tag">🌨 天气</span>
+            <ul class="news-list">
+              <li>北京普降大雪，"正月十六雪打灯"应验，影响早高峰出行 <span class="source">— 北京市人民政府</span></li>
+            </ul>
+          </div>
+
+          <div class="section-divider">
+            <div class="section-divider-title">📝 自媒体素材库</div>
+          </div>
+
+          <div class="category">
+            <span class="category-tag">✨ 每日金句</span>
+            <ul class="news-list">
+              <li>「春雷惊百虫，好事近从容。」—— 不必急于求成，惊蛰之后，该来的都在路上。</li>
+              <li>「世界上只有一种真正的英雄主义，那就是在认清生活的真相后，依然热爱生活。」—— 罗曼·罗兰</li>
+            </ul>
+          </div>
+
+          <div class="category">
+            <span class="category-tag">🗣 今日热词</span>
+            <ul class="news-list">
+              <li><strong>「老几」</strong> — 源自东北方言，表示"你算哪根葱"的调侃。近期在抖音/B站爆火，常用于怼人或自嘲场景 <span class="source">📍 抖音 / B站</span></li>
+              <li><strong>「班味」</strong> — 形容一个人身上散发出的"上过班"的疲惫气质。春节后开工，打工人集体"班味回归" <span class="source">📍 小红书 / 微博</span></li>
+              <li><strong>「精神股东」</strong> — 没买股票但天天盯盘、分析大势的人。两会期间股市波动，精神股东们又活跃了 <span class="source">📍 微博 / 雪球</span></li>
+              <li><strong>「惊蛰文学」</strong> — 惊蛰节气催生的文案体裁，"春雷一响，万物生长"式的励志文案刷屏朋友圈 <span class="source">📍 朋友圈 / 小红书</span></li>
+            </ul>
+          </div>
+
+          <div class="category">
+            <span class="category-tag">🔥 热门文案素材</span>
+            <ul class="news-list">
+              <li><strong>「带薪休假真的来了？别高兴太早」</strong><br>切入点：政府工作报告提出落实带薪错峰休假，但打工人真的敢休吗？聊聊理想与现实的差距<br><span class="source">📍 小红书 / 公众号</span></li>
+              <li><strong>「一部电影干翻阿凡达，中国电影到底行不行？」</strong><br>切入点：《飞驰人生3》登顶全球票房榜，国产电影工业化进程加速，但质量是否跟上了票房？<br><span class="source">📍 抖音 / B站</span></li>
+              <li><strong>「油价又要涨？中东这盘棋普通人怎么接招」</strong><br>切入点：美伊冲突推高原油价格，期货涨停，普通人的油费、物价会怎样？实用应对指南<br><span class="source">📍 抖音 / 小红书</span></li>
+            </ul>
+          </div>
+
+          <div class="category">
+            <span class="category-tag">💎 小众文案素材</span>
+            <ul class="news-list">
+              <li><strong>「惊蛰日做这3件事，整个春天都顺」</strong><br>切入点：从节气养生、风水习俗到心理暗示，惊蛰是"重启"的最佳时机，适合做年度计划的二次启动<br><span class="source">📍 小红书 / 公众号</span></li>
+              <li><strong>「义乌老板靠AI玩具月入百万，这个风口你还不知道？」</strong><br>切入点：AI玩具出口客单价涨7成，拆解这个闷声发财的赛道，普通人能怎么切入<br><span class="source">📍 公众号 / 知乎</span></li>
+              <li><strong>「40年前的一部话剧，凭什么让今天的年轻人哭成狗」</strong><br>切入点：《暗恋桃花源》40周年，聊聊那些跨越时代的情感共鸣，为什么经典永远有市场<br><span class="source">📍 B站 / 公众号</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="day-section" id="day-2026-03-04">
+          <div class="day-header">
+            <h2>📅 2026年3月4日</h2>
+            <span class="weekday">星期三 · 农历丙午年正月十六</span>
+          </div>
+
+          <div class="category">
+            <span class="category-tag">🏛 两会</span>
+            <ul class="news-list">
+              <li>全国政协十四届四次会议正式开幕 <span class="source">— 新华网</span></li>
+              <li>十四届全国人大四次会议举行预备会议，选举产生大会主席团和秘书长 <span class="source">— 新华网</span></li>
+              <li>十四届全国人大四次会议定于3月5日开幕，会期8天 <span class="source">— 人民政协网</span></li>
+              <li>BBC：2026中国两会——北京如何定义未来五年？ <span class="source">— BBC</span></li>
+              <li>RFI：中国"两会"开幕，应对内外挑战抑或强化习近平路线？ <span class="source">— RFI</span></li>
+              <li>专访张雨霏：目标不止洛杉矶 <span class="source">— 中国新闻网</span></li>
+            </ul>
+          </div>
+
+          <div class="category">
+            <span class="category-tag">🌍 国际·中东局势</span>
+            <ul class="news-list">
+              <li>美军轰炸伊朗近2000个目标，摧毁海军，B-52轰炸机首次出击 <span class="source">— 新唐人电视台</span></li>
+              <li>伊朗执行哈梅内伊遗志，扩大冲突施压美以停手 <span class="source">— 联合早报</span></li>
+              <li>伊媒：革命卫队导弹"重击"美国驱逐舰油轮 <span class="source">— 联合早报</span></li>
+              <li>伊朗情报部特工向美国表明愿意谈判 <span class="source">— 联合早报</span></li>
+              <li>伊朗局势失控，海湾国家面临噩梦场景 <span class="source">— 纽约时报中文网</span></li>
+              <li>日本首相拒绝回答美以攻击伊朗是否违反国际法 <span class="source">— RFI</span></li>
+              <li>立陶宛蹚浑水：想帮美国打伊朗 <span class="source">— 凤凰网</span></li>
+              <li>美以针对伊朗的军事行动将如何影响中国？ <span class="source">— 美国之音</span></li>
+            </ul>
+          </div>
+
+          <div class="category">
+            <span class="category-tag">🔬 科技</span>
+            <ul class="news-list">
+              <li>GPT-5.4 意外泄露：200万上下文窗口与持久状态化特性引关注 <span class="source">— OSCHINA</span></li>
+              <li>MacBook新品全家桶上线，还有一款神秘新品 <span class="source">— 爱范儿</span></li>
+              <li>2nm芯片成本失控！旗舰手机集体大涨价，起步价直冲5000元 <span class="source">— 驱动之家</span></li>
+              <li>全新M4 iPad Air首个Geekbench跑分出炉，单核性能提升明显 <span class="source">— 驱动之家</span></li>
+              <li>OPPO Find X9 Ultra入网：原生10倍光变一骑绝尘 <span class="source">— 驱动之家</span></li>
+            </ul>
+          </div>
+
+          <div class="category">
+            <span class="category-tag">🎬 文娱</span>
+            <ul class="news-list">
+              <li>多彩"电影+"点亮文化消费，"小票根"变身价值枢纽 <span class="source">— 央视</span></li>
+              <li>《中国奇谭2》收官，"奇谭宇宙"进入发展新阶段 <span class="source">— 海峡网</span></li>
+              <li>杭州一影院试行"观影后悔权"，网友：建议全国推广 <span class="source">— 四川新闻</span></li>
+              <li>66年来首开音乐季，中央民族乐团用"中国时间"讲述"中国音乐" <span class="source">— 中青在线</span></li>
+              <li>张凯丽称或将尝试微短剧 <span class="source">— 中国新闻网</span></li>
+            </ul>
+          </div>
+        </div>
+
+      </main>
+
+      <footer>
+        <p>Powered by 小可 🐾 · 数据来源 Google News</p>
+      </footer>
+      </div>
+    </div>
+  </div>
+  <script>
+    function toggleSidebar() {
+      document.querySelector('.sidebar').classList.toggle('open');
+      document.querySelector('.sidebar-overlay').classList.toggle('open');
+    }
+    // Close sidebar when clicking a nav link (mobile)
+    document.querySelectorAll('.sidebar a').forEach(a => {
+      a.addEventListener('click', () => {
+        if (window.innerWidth <= 768) toggleSidebar();
+      });
+    });
+  </script>
+</body>
+</html>
